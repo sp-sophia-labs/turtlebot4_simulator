@@ -74,6 +74,9 @@ def generate_launch_description():
         'irobot_create_ignition_bringup')
 
     # Paths
+    ign_gazebo_launch = PathJoinSubstitution(
+        [pkg_turtlebot4_ignition_bringup, 'launch', 'ignition.launch.py'])
+
     turtlebot4_ros_ign_bridge_launch = PathJoinSubstitution(
         [pkg_turtlebot4_ignition_bringup, 'launch', 'ros_ign_bridge.launch.py'])
     rviz_launch = PathJoinSubstitution(
@@ -94,6 +97,26 @@ def generate_launch_description():
         [pkg_turtlebot4_navigation, 'launch', 'slam.launch.py'])
     nav2_launch = PathJoinSubstitution(
         [pkg_turtlebot4_navigation, 'launch', 'nav2.launch.py'])
+
+    
+    
+    ignition_gazebo = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([ign_gazebo_launch]),
+            launch_arguments=[
+                ('ign_args', [LaunchConfiguration('world'),
+                            '.sdf',
+                            ' -s',
+                            #   ' --gui-config ',
+                            # PathJoinSubstitution(
+                            #     [pkg_turtlebot4_ignition_bringup,
+                            #      ' gui',
+                            #      LaunchConfiguration('model'),
+                            #      ' gui.config']),
+                            ' --network-role secondary',
+                            #   ' --network-secondaries 1'
+                            ])
+            ]
+        )
 
     # Parameters
     param_file_cmd = DeclareLaunchArgument(
@@ -137,12 +160,12 @@ def generate_launch_description():
                               ('use_sim_time', LaunchConfiguration('use_sim_time'))]
         ),
 
-        # Dock description
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([dock_description_launch]),
-            # The robot starts docked
-            launch_arguments={'gazebo': 'ignition'}.items(),
-        ),
+        # # Dock description
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource([dock_description_launch]),
+        #     # The robot starts docked
+        #     launch_arguments={'gazebo': 'ignition'}.items(),
+        # ),
 
         # Spawn TurtleBot 4
         Node(
@@ -153,22 +176,24 @@ def generate_launch_description():
                        '-y', y,
                        '-z', z_robot,
                        '-Y', yaw,
-                       '-topic', 'robot_description'],
+                       '-file', str(Path(pkg_turtlebot4_description).parent.resolve())+'/turtlebot4_description/urdf/standard/turtlebot4_3_ign.sdf'
+                    # '-topic', 'robot_description',
+                    ],
             output='screen'
         ),
 
-        # Spawn Dock
-        Node(
-            package='ros_ign_gazebo',
-            executable='create',
-            arguments=['-name', dock_name,
-                       '-x', x_dock,
-                       '-y', y_dock,
-                       '-z', z,
-                       '-Y', yaw_dock,
-                       '-topic', 'standard_dock_description'],
-            output='screen',
-        ),
+        # # Spawn Dock
+        # Node(
+        #     package='ros_ign_gazebo',
+        #     executable='create',
+        #     arguments=['-name', dock_name,
+        #                '-x', x_dock,
+        #                '-y', y_dock,
+        #                '-z', z,
+        #                '-Y', yaw_dock,
+        #                '-topic', 'standard_dock_description'],
+        #     output='screen',
+        # ),
 
         # ROS IGN bridge
         IncludeLaunchDescription(
