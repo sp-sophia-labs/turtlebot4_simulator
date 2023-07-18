@@ -84,16 +84,16 @@ def generate_launch_description():
             ('ign_args', [LaunchConfiguration('world'),
                           '.sdf',
                           ' -rv 4',
-                          ' --network-role primary',
-                          ' --network-secondaries 0',
+                        #   ' --network-role primary',
+                        #   ' --network-secondaries 1',
                         #   ' --gui-config ',
                         #   PathJoinSubstitution(
                         #     [pkg_turtlebot4_ignition_bringup,
                         #      'gui',
                         #      LaunchConfiguration('model'),
-                        #      'gui.config'])])
-        ]
-    )
+                        #      'gui.config'])
+                             ])
+        ])
 
     # Clock bridge
     clock_bridge = Node(package='ros_gz_bridge', executable='parameter_bridge',

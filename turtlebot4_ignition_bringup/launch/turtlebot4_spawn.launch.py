@@ -28,6 +28,8 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 
 from launch_ros.actions import Node, PushRosNamespace
 
+from pathlib import Path
+
 
 ARGUMENTS = [
     DeclareLaunchArgument('rviz', default_value='false',
@@ -74,8 +76,8 @@ def generate_launch_description():
         'irobot_create_ignition_bringup')
 
     # Paths
-    ign_gazebo_launch = PathJoinSubstitution(
-        [pkg_turtlebot4_ignition_bringup, 'launch', 'ignition.launch.py'])
+    # ign_gazebo_launch = PathJoinSubstitution(
+    #     [pkg_turtlebot4_ignition_bringup, 'launch', 'ignition.launch.py'])
 
     turtlebot4_ros_ign_bridge_launch = PathJoinSubstitution(
         [pkg_turtlebot4_ignition_bringup, 'launch', 'ros_ign_bridge.launch.py'])
@@ -98,25 +100,25 @@ def generate_launch_description():
     nav2_launch = PathJoinSubstitution(
         [pkg_turtlebot4_navigation, 'launch', 'nav2.launch.py'])
 
-    
-    
-    ignition_gazebo = IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([ign_gazebo_launch]),
-            launch_arguments=[
-                ('ign_args', [LaunchConfiguration('world'),
-                            '.sdf',
-                            ' -s',
-                            #   ' --gui-config ',
-                            # PathJoinSubstitution(
-                            #     [pkg_turtlebot4_ignition_bringup,
-                            #      ' gui',
-                            #      LaunchConfiguration('model'),
-                            #      ' gui.config']),
-                            ' --network-role secondary',
-                            #   ' --network-secondaries 1'
-                            ])
-            ]
-        )
+
+    # ignition_gazebo = IncludeLaunchDescription(
+    #         PythonLaunchDescriptionSource([ign_gazebo_launch]),
+    #         launch_arguments=[
+    #             ('ign_args', [LaunchConfiguration('world'),
+    #                         '.sdf',
+    #                         ' -s',
+    #                         #   ' --gui-config ',
+    #                         # PathJoinSubstitution(
+    #                         #     [pkg_turtlebot4_ignition_bringup,
+    #                         #      ' gui',
+    #                         #      LaunchConfiguration('model'),
+    #                         #      ' gui.config']),
+    #                         ' --network-role secondary',
+    #                         #   ' --network-secondaries 1'
+    #                         ])
+    #         ]
+    #     )
+
 
     # Parameters
     param_file_cmd = DeclareLaunchArgument(
@@ -176,11 +178,12 @@ def generate_launch_description():
                        '-y', y,
                        '-z', z_robot,
                        '-Y', yaw,
-                       '-file', str(Path(pkg_turtlebot4_description).parent.resolve())+'/turtlebot4_description/urdf/standard/turtlebot4_3_ign.sdf'
-                    # '-topic', 'robot_description',
+                       #'-file', str(Path(pkg_turtlebot4_description).parent.resolve())+'/turtlebot4_description/urdf/standard/turtlebot4_1_ign.sdf'
+                    '-topic', 'robot_description',
                     ],
             output='screen'
         ),
+        
 
         # # Spawn Dock
         # Node(
