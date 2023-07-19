@@ -20,9 +20,9 @@ from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 
+from launch.conditions import IfCondition 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable, ExecuteProcess, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -36,6 +36,9 @@ ARGUMENTS = [
                           description='Ignition World'),
     DeclareLaunchArgument('model', default_value='lite',
                           choices=['standard', 'lite'],
+                          description='Turtlebot4 Model'),
+    DeclareLaunchArgument('as_secondary', default_value='true',
+                          choices=['true', 'false'],
                           description='Turtlebot4 Model'),
 ]
 
@@ -78,14 +81,14 @@ def generate_launch_description():
         [pkg_ros_ign_gazebo, 'launch', 'ign_gazebo.launch.py'])
 
     # Ignition gazebo
-    ignition_gazebo = IncludeLaunchDescription(
+    ignition_gazebo =IncludeLaunchDescription(
         PythonLaunchDescriptionSource([ign_gazebo_launch]),
         launch_arguments=[
             ('ign_args', [LaunchConfiguration('world'),
                           '.sdf',
                           ' -rv 4',
-                        #   ' --network-role primary',
-                        #   ' --network-secondaries 1',
+                          ' -s',
+                          ' --network-role secondary',
                         #   ' --gui-config ',
                         #   PathJoinSubstitution(
                         #     [pkg_turtlebot4_ignition_bringup,
@@ -93,7 +96,35 @@ def generate_launch_description():
                         #      LaunchConfiguration('model'),
                         #      'gui.config'])
                              ])
-        ])
+        ],
+        condition=IfCondition(LaunchConfiguration('as_secondary')),
+        )
+
+    # ignition_gazebo =IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource([ign_gazebo_launch]),
+    #     launch_arguments=[
+    #         ('ign_args', [LaunchConfiguration('world'),
+    #                       '.sdf',
+    #                       ' -rv 4',
+    #                       ' -s',
+    #                       ' --network-role secondary',
+    #                     #   ' --gui-config ',
+    #                     #   PathJoinSubstitution(
+    #                     #     [pkg_turtlebot4_ignition_bringup,
+    #                     #      'gui',
+    #                     #      LaunchConfiguration('model'),
+    #                     #      'gui.config'])
+    #                          ])
+    #     ],
+    #     condition=IfCondition(LaunchConfiguration('as_secondary')=='false'),
+    #     )
+
+    # network_role = ExecuteProcess(
+    #     cmd=[[
+    #         'ign gazebo -s --network-role secondary'
+    #     ]],
+    #     shell=True
+    # )
 
     # Clock bridge
     clock_bridge = Node(package='ros_gz_bridge', executable='parameter_bridge',
@@ -108,5 +139,7 @@ def generate_launch_description():
     ld.add_action(ign_resource_path)
     ld.add_action(ign_gui_plugin_path)
     ld.add_action(ignition_gazebo)
+    # ld.add_action(ignition_gazebo_secondary)
     ld.add_action(clock_bridge)
+    
     return ld
