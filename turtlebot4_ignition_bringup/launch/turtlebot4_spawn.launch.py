@@ -43,6 +43,9 @@ ARGUMENTS = [
                           description='Turtlebot4 Model'),
     DeclareLaunchArgument('namespace', default_value='',
                           description='Robot namespace'),
+    
+    
+    # Navigation stack
     DeclareLaunchArgument('localization', default_value='false',
                           choices=['true', 'false'],
                           description='Whether to launch localization'),
@@ -129,7 +132,9 @@ def generate_launch_description():
     # Rotate dock towards robot
     yaw_dock = OffsetParser(yaw, 3.1416)
 
-    spawn_robot_group_action = GroupAction([
+
+    # Spawn with robot_description
+    spawn_robot_group_action_by_topic = GroupAction([
         PushRosNamespace(namespace),
 
         # Robot description
@@ -139,7 +144,7 @@ def generate_launch_description():
                               ('use_sim_time', LaunchConfiguration('use_sim_time'))]
         ),
 
-        # # Dock description
+        # Dock description
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([dock_description_launch]),
             # The robot starts docked
@@ -155,12 +160,9 @@ def generate_launch_description():
                        '-y', y,
                        '-z', z_robot,
                        '-Y', yaw,
-                       '-file', 'simulation_ws/src/turtlebot4/turtlebot4_description/urdf/standard/turtlebot4_1_ign.sdf'
-                    #'-topic', 'robot_description',
-                    ],
+                       '-topic', 'robot_description'],
             output='screen'
         ),
-        
 
         # Spawn Dock
         Node(
@@ -274,18 +276,607 @@ def generate_launch_description():
         ),
     ])
 
+
+    ## Spawn with sdf
+    # Spawn Robot1
+    spawn_robot_group_action1 = GroupAction([
+        PushRosNamespace('robot1/turtlebot4'),
+
+        # Robot description
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([robot_description_launch]),
+            launch_arguments=[('model', LaunchConfiguration('model')),
+                              ('use_sim_time', LaunchConfiguration('use_sim_time'))]
+        ),
+
+        # Dock description
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([dock_description_launch]),
+            # The robot starts docked
+            launch_arguments={'gazebo': 'ignition'}.items(),
+        ),
+
+        # Spawn TurtleBot 4
+        Node(
+            package='ros_ign_gazebo',
+            executable='create',
+            arguments=['-name', 'robot1/turtlebot4',
+                       '-x', x,
+                       '-y', y,
+                       '-z', z_robot,
+                       '-Y', yaw,
+                       '-file', 'simulation_ws/src/turtlebot4/turtlebot4_description/urdf/standard/robot1_turtlebot4.sdf'
+                    ],
+            output='screen'
+        ),
+        
+
+        # Spawn Dock
+        Node(
+            package='ros_ign_gazebo',
+            executable='create',
+            arguments=['-name', 'robot1/standard_dock',
+                       '-x', x_dock,
+                       '-y', y_dock,
+                       '-z', z,
+                       '-Y', yaw_dock,
+                       '-topic', 'standard_dock_description'],
+            output='screen',
+        ),
+
+        # ROS IGN bridge
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([turtlebot4_ros_ign_bridge_launch]),
+            launch_arguments=[
+                ('model', LaunchConfiguration('model')),
+                ('robot_name', 'robot1/turtlebot4'),
+                ('dock_name', 'robot1/standard_dock'),
+                ('namespace', namespace)]
+        ),
+
+        # TurtleBot 4 nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([turtlebot4_node_launch]),
+            launch_arguments=[('model', LaunchConfiguration('model')),
+                              ('param_file', turtlebot4_node_yaml_file)]
+        ),
+
+        # Create 3 nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([create3_nodes_launch]),
+            launch_arguments=[
+                ('namespace', namespace)
+            ]
+        ),
+
+        # Create 3 Ignition nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([create3_ignition_nodes_launch]),
+            launch_arguments=[
+                ('robot_name', 'robot1/turtlebot4'),
+                ('dock_name', 'robot1/standard_dock'),
+            ]
+        ),
+
+        # RPLIDAR static transforms
+        Node(
+            name='rplidar_stf',
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            output='screen',
+            arguments=[
+                '0', '0', '0', '0', '0', '0.0',
+                'rplidar_link', ['robot1/turtlebot4', '/rplidar_link/rplidar']],
+            remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static'),
+            ]
+        ),
+
+        # OAKD static transform
+        # Required for pointcloud. See https://github.com/gazebosim/gz-sensors/issues/239
+        Node(
+            name='camera_stf',
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            output='screen',
+            arguments=[
+                '0', '0', '0',
+                '1.5707', '-1.5707', '0',
+                'oakd_rgb_camera_optical_frame',
+                ['robot1/turtlebot4', '/oakd_rgb_camera_frame/rgbd_camera']
+            ],
+            remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static'),
+            ]
+        ),
+
+        # Localization
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([localization_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(localization)
+        ),
+
+        # SLAM
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([slam_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(slam)
+        ),
+
+        # Nav2
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([nav2_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(nav2)
+        ),
+    ])
+
+    # Spawn Robot2
+    spawn_robot_group_action2 = GroupAction([
+        PushRosNamespace('robot2/turtlebot4'),
+
+        # Robot description
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([robot_description_launch]),
+            launch_arguments=[('model', LaunchConfiguration('model')),
+                              ('use_sim_time', LaunchConfiguration('use_sim_time'))]
+        ),
+
+        # Dock description
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([dock_description_launch]),
+            # The robot starts docked
+            launch_arguments={'gazebo': 'ignition'}.items(),
+        ),
+
+        # Spawn TurtleBot 4
+        Node(
+            package='ros_ign_gazebo',
+            executable='create',
+            arguments=['-name', 'robot2/turtlebot4',
+                       '-x', '-2',
+                       '-y', y,
+                       '-z', z_robot,
+                       '-Y', yaw,
+                       '-file', 'simulation_ws/src/turtlebot4/turtlebot4_description/urdf/standard/robot2_turtlebot4.sdf'
+                    ],
+            output='screen'
+        ),
+        
+
+        # Spawn Dock
+        Node(
+            package='ros_ign_gazebo',
+            executable='create',
+            arguments=['-name', 'robot2/standard_dock',
+                       '-x', '-2',
+                       '-y', y_dock,
+                       '-z', z,
+                       '-Y', yaw_dock,
+                       '-topic', 'standard_dock_description'],
+            output='screen',
+        ),
+
+        # ROS IGN bridge
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([turtlebot4_ros_ign_bridge_launch]),
+            launch_arguments=[
+                ('model', LaunchConfiguration('model')),
+                ('robot_name', 'robot2/turtlebot4'),
+                ('dock_name', 'robot2/standard_dock'),
+                ('namespace', namespace)]
+        ),
+
+        # TurtleBot 4 nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([turtlebot4_node_launch]),
+            launch_arguments=[('model', LaunchConfiguration('model')),
+                              ('param_file', turtlebot4_node_yaml_file)]
+        ),
+
+        # Create 3 nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([create3_nodes_launch]),
+            launch_arguments=[
+                ('namespace', namespace)
+            ]
+        ),
+
+        # Create 3 Ignition nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([create3_ignition_nodes_launch]),
+            launch_arguments=[
+                ('robot_name', 'robot2/turtlebot4'),
+                ('dock_name', 'robot2/standard_dock'),
+            ]
+        ),
+
+        # RPLIDAR static transforms
+        Node(
+            name='rplidar_stf',
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            output='screen',
+            arguments=[
+                '0', '0', '0', '0', '0', '0.0',
+                'rplidar_link', ['robot2/turtlebot4', '/rplidar_link/rplidar']],
+            remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static'),
+            ]
+        ),
+
+        # OAKD static transform
+        # Required for pointcloud. See https://github.com/gazebosim/gz-sensors/issues/239
+        Node(
+            name='camera_stf',
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            output='screen',
+            arguments=[
+                '0', '0', '0',
+                '1.5707', '-1.5707', '0',
+                'oakd_rgb_camera_optical_frame',
+                ['robot2/turtlebot4', '/oakd_rgb_camera_frame/rgbd_camera']
+            ],
+            remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static'),
+            ]
+        ),
+
+        # Localization
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([localization_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(localization)
+        ),
+
+        # SLAM
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([slam_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(slam)
+        ),
+
+        # Nav2
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([nav2_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(nav2)
+        ),
+    ])
+
+    # Spawn Robot3
+    spawn_robot_group_action3 = GroupAction([
+        PushRosNamespace('robot3/turtlebot4'),
+
+        # Robot description
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([robot_description_launch]),
+            launch_arguments=[('model', LaunchConfiguration('model')),
+                              ('use_sim_time', LaunchConfiguration('use_sim_time'))]
+        ),
+
+        # Dock description
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([dock_description_launch]),
+            # The robot starts docked
+            launch_arguments={'gazebo': 'ignition'}.items(),
+        ),
+
+        # Spawn TurtleBot 4
+        Node(
+            package='ros_ign_gazebo',
+            executable='create',
+            arguments=['-name', 'robot3/turtlebot4',
+                       '-x', x,
+                       '-y', y,
+                       '-z', z_robot,
+                       '-Y', yaw,
+                       '-file', 'simulation_ws/src/turtlebot4/turtlebot4_description/urdf/standard/robot3_turtlebot4.sdf'
+                    ],
+            output='screen'
+        ),
+        
+
+        # Spawn Dock
+        Node(
+            package='ros_ign_gazebo',
+            executable='create',
+            arguments=['-name', 'robot3/standard_dock',
+                       '-x', x_dock,
+                       '-y', y_dock,
+                       '-z', z,
+                       '-Y', yaw_dock,
+                       '-topic', 'standard_dock_description'],
+            output='screen',
+        ),
+
+        # ROS IGN bridge
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([turtlebot4_ros_ign_bridge_launch]),
+            launch_arguments=[
+                ('model', LaunchConfiguration('model')),
+                ('robot_name', 'robot3/turtlebot4'),
+                ('dock_name', 'robot3/standard_dock'),
+                ('namespace', namespace)]
+        ),
+
+        # TurtleBot 4 nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([turtlebot4_node_launch]),
+            launch_arguments=[('model', LaunchConfiguration('model')),
+                              ('param_file', turtlebot4_node_yaml_file)]
+        ),
+
+        # Create 3 nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([create3_nodes_launch]),
+            launch_arguments=[
+                ('namespace', namespace)
+            ]
+        ),
+
+        # Create 3 Ignition nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([create3_ignition_nodes_launch]),
+            launch_arguments=[
+                ('robot_name', 'robot3/turtlebot4'),
+                ('dock_name', 'robot3/standard_dock'),
+            ]
+        ),
+
+        # RPLIDAR static transforms
+        Node(
+            name='rplidar_stf',
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            output='screen',
+            arguments=[
+                '0', '0', '0', '0', '0', '0.0',
+                'rplidar_link', ['robot3/turtlebot4', '/rplidar_link/rplidar']],
+            remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static'),
+            ]
+        ),
+
+        # OAKD static transform
+        # Required for pointcloud. See https://github.com/gazebosim/gz-sensors/issues/239
+        Node(
+            name='camera_stf',
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            output='screen',
+            arguments=[
+                '0', '0', '0',
+                '1.5707', '-1.5707', '0',
+                'oakd_rgb_camera_optical_frame',
+                ['robot3/turtlebot4', '/oakd_rgb_camera_frame/rgbd_camera']
+            ],
+            remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static'),
+            ]
+        ),
+
+        # Localization
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([localization_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(localization)
+        ),
+
+        # SLAM
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([slam_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(slam)
+        ),
+
+        # Nav2
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([nav2_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(nav2)
+        ),
+    ])
+
+    # Spawn Robot4
+    spawn_robot_group_action4 = GroupAction([
+        PushRosNamespace('robot4/turtlebot4'),
+
+        # Robot description
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([robot_description_launch]),
+            launch_arguments=[('model', LaunchConfiguration('model')),
+                              ('use_sim_time', LaunchConfiguration('use_sim_time'))]
+        ),
+
+        # Dock description
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([dock_description_launch]),
+            # The robot starts docked
+            launch_arguments={'gazebo': 'ignition'}.items(),
+        ),
+
+        # Spawn TurtleBot 4
+        Node(
+            package='ros_ign_gazebo',
+            executable='create',
+            arguments=['-name', 'robot4/turtlebot4',
+                       '-x', x,
+                       '-y', y,
+                       '-z', z_robot,
+                       '-Y', yaw,
+                       '-file', 'simulation_ws/src/turtlebot4/turtlebot4_description/urdf/standard/robot4_turtlebot4.sdf'
+                    ],
+            output='screen'
+        ),
+        
+
+        # Spawn Dock
+        Node(
+            package='ros_ign_gazebo',
+            executable='create',
+            arguments=['-name', 'robot4/standard_dock',
+                       '-x', x_dock,
+                       '-y', y_dock,
+                       '-z', z,
+                       '-Y', yaw_dock,
+                       '-topic', 'standard_dock_description'],
+            output='screen',
+        ),
+
+        # ROS IGN bridge
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([turtlebot4_ros_ign_bridge_launch]),
+            launch_arguments=[
+                ('model', LaunchConfiguration('model')),
+                ('robot_name', 'robot4/turtlebot4'),
+                ('dock_name', 'robot4/standard_dock'),
+                ('namespace', namespace)]
+        ),
+
+        # TurtleBot 4 nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([turtlebot4_node_launch]),
+            launch_arguments=[('model', LaunchConfiguration('model')),
+                              ('param_file', turtlebot4_node_yaml_file)]
+        ),
+
+        # Create 3 nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([create3_nodes_launch]),
+            launch_arguments=[
+                ('namespace', namespace)
+            ]
+        ),
+
+        # Create 3 Ignition nodes
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([create3_ignition_nodes_launch]),
+            launch_arguments=[
+                ('robot_name', 'robot4/turtlebot4'),
+                ('dock_name', 'robot4/standard_dock'),
+            ]
+        ),
+
+        # RPLIDAR static transforms
+        Node(
+            name='rplidar_stf',
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            output='screen',
+            arguments=[
+                '0', '0', '0', '0', '0', '0.0',
+                'rplidar_link', ['robot4/turtlebot4', '/rplidar_link/rplidar']],
+            remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static'),
+            ]
+        ),
+
+        # OAKD static transform
+        # Required for pointcloud. See https://github.com/gazebosim/gz-sensors/issues/239
+        Node(
+            name='camera_stf',
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            output='screen',
+            arguments=[
+                '0', '0', '0',
+                '1.5707', '-1.5707', '0',
+                'oakd_rgb_camera_optical_frame',
+                ['robot4/turtlebot4', '/oakd_rgb_camera_frame/rgbd_camera']
+            ],
+            remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static'),
+            ]
+        ),
+
+        # Localization
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([localization_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(localization)
+        ),
+
+        # SLAM
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([slam_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(slam)
+        ),
+
+        # Nav2
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([nav2_launch]),
+            launch_arguments=[
+                ('namespace', namespace),
+                ('use_sim_time', use_sim_time)
+            ],
+            condition=IfCondition(nav2)
+        ),
+    ])
+
     # RViz
     rviz = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([rviz_launch]),
         launch_arguments=[
-            ('namespace', namespace),
+            ('namespace', 'robot1/turtlebot4'),
             ('use_sim_time', use_sim_time)],
         condition=IfCondition(LaunchConfiguration('rviz')),
     )
 
+
     # Define LaunchDescription variable
     ld = LaunchDescription(ARGUMENTS)
     ld.add_action(param_file_cmd)
-    ld.add_action(spawn_robot_group_action)
+    #ld.add_action(spawn_robot_group_action_by_topic)
+    
+    ld.add_action(spawn_robot_group_action1)
+    ld.add_action(spawn_robot_group_action2)
+    # ld.add_action(spawn_robot_group_action3)
+    # ld.add_action(spawn_robot_group_action4)
     ld.add_action(rviz)
+
     return ld
