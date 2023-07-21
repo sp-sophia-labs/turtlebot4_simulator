@@ -40,8 +40,7 @@ ARGUMENTS = [
     DeclareLaunchArgument('as_primary', default_value='true',
                           choices=['true', 'false'],
                           description='Turtlebot4 Model'),
-    DeclareLaunchArgument('n_secondaries', default_value='1',
-                          description='Turtlebot4 Model'),
+    DeclareLaunchArgument('n_secondaries', default_value='1'),
     DeclareLaunchArgument('as_secondary', default_value='false',
                           choices=['true', 'false'],
                           description='Turtlebot4 Model'),
@@ -94,7 +93,7 @@ def generate_launch_description():
                           '.sdf',
                           ' -rv 4',
                           ' --network-role primary',
-                          ' --network-secondaries n_secondaries', 
+                          ' --network-secondaries ', n_secondaries, 
                              ])
         ],
         condition=IfCondition(LaunchConfiguration('as_primary')),
@@ -106,7 +105,6 @@ def generate_launch_description():
         launch_arguments=[
             ('ign_args', [LaunchConfiguration('world'),
                           '.sdf',
-                          ' -rv 4',
                           ' -s',
                           ' --network-role secondary',
                              ])
