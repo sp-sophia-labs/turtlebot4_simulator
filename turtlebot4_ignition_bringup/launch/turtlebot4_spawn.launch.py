@@ -117,9 +117,6 @@ def generate_launch_description():
     slam = LaunchConfiguration('slam')
     nav2 = LaunchConfiguration('nav2')
 
-    robot_name = GetNamespacedName(namespace, 'turtlebot4')
-    dock_name = GetNamespacedName(namespace, 'standard_dock')
-
     # Calculate dock offset due to yaw rotation
     dock_offset_x = RotationalOffsetX(0.157, yaw)
     dock_offset_y = RotationalOffsetY(0.157, yaw)
@@ -132,6 +129,9 @@ def generate_launch_description():
     # Rotate dock towards robot
     yaw_dock = OffsetParser(yaw, 3.1416)
 
+
+    robot_name = GetNamespacedName(namespace, 'turtlebot4')
+    dock_name = GetNamespacedName(namespace, 'standard_dock')
 
     # Spawn with robot_description
     spawn_robot_group_action_by_topic = GroupAction([
@@ -160,7 +160,8 @@ def generate_launch_description():
                        '-y', y,
                        '-z', z_robot,
                        '-Y', yaw,
-                       '-topic', 'robot_description'],
+                       '-topic', 'robot_description'
+                       ],
             output='screen'
         ),
 
@@ -279,8 +280,11 @@ def generate_launch_description():
 
     ## Spawn with sdf
     # Spawn Robot1
+    namespace = 'robot1'
+    robot_name = GetNamespacedName(namespace, 'turtlebot4')
+    dock_name = GetNamespacedName(namespace, 'standard_dock')
     spawn_robot_group_action1 = GroupAction([
-        PushRosNamespace('robot1/turtlebot4'),
+        PushRosNamespace(namespace),
 
         # Robot description
         IncludeLaunchDescription(
@@ -300,7 +304,7 @@ def generate_launch_description():
         Node(
             package='ros_ign_gazebo',
             executable='create',
-            arguments=['-name', 'robot1/turtlebot4',
+            arguments=['-name', robot_name,
                        '-x', x,
                        '-y', y,
                        '-z', z_robot,
@@ -309,13 +313,12 @@ def generate_launch_description():
                     ],
             output='screen'
         ),
-        
 
         # Spawn Dock
         Node(
             package='ros_ign_gazebo',
             executable='create',
-            arguments=['-name', 'robot1/standard_dock',
+            arguments=['-name', dock_name,
                        '-x', x_dock,
                        '-y', y_dock,
                        '-z', z,
@@ -329,8 +332,8 @@ def generate_launch_description():
             PythonLaunchDescriptionSource([turtlebot4_ros_ign_bridge_launch]),
             launch_arguments=[
                 ('model', LaunchConfiguration('model')),
-                ('robot_name', 'robot1/turtlebot4'),
-                ('dock_name', 'robot1/standard_dock'),
+                ('robot_name', robot_name),
+                ('dock_name', dock_name),
                 ('namespace', namespace)]
         ),
 
@@ -353,8 +356,8 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([create3_ignition_nodes_launch]),
             launch_arguments=[
-                ('robot_name', 'robot1/turtlebot4'),
-                ('dock_name', 'robot1/standard_dock'),
+                ('robot_name', robot_name),
+                ('dock_name', dock_name),
             ]
         ),
 
@@ -366,7 +369,7 @@ def generate_launch_description():
             output='screen',
             arguments=[
                 '0', '0', '0', '0', '0', '0.0',
-                'rplidar_link', ['robot1/turtlebot4', '/rplidar_link/rplidar']],
+                'rplidar_link', [robot_name, '/rplidar_link/rplidar']],
             remappings=[
                 ('/tf', 'tf'),
                 ('/tf_static', 'tf_static'),
@@ -384,7 +387,7 @@ def generate_launch_description():
                 '0', '0', '0',
                 '1.5707', '-1.5707', '0',
                 'oakd_rgb_camera_optical_frame',
-                ['robot1/turtlebot4', '/oakd_rgb_camera_frame/rgbd_camera']
+                [robot_name, '/oakd_rgb_camera_frame/rgbd_camera']
             ],
             remappings=[
                 ('/tf', 'tf'),
@@ -424,8 +427,11 @@ def generate_launch_description():
     ])
 
     # Spawn Robot2
+    namespace = 'robot2'
+    robot_name = GetNamespacedName(namespace, 'turtlebot4')
+    dock_name = GetNamespacedName(namespace, 'standard_dock')
     spawn_robot_group_action2 = GroupAction([
-        PushRosNamespace('robot2/turtlebot4'),
+        PushRosNamespace(namespace),
 
         # Robot description
         IncludeLaunchDescription(
@@ -445,7 +451,7 @@ def generate_launch_description():
         Node(
             package='ros_ign_gazebo',
             executable='create',
-            arguments=['-name', 'robot2/turtlebot4',
+            arguments=['-name', robot_name,
                        '-x', '-2',
                        '-y', y,
                        '-z', z_robot,
@@ -454,13 +460,12 @@ def generate_launch_description():
                     ],
             output='screen'
         ),
-        
 
         # Spawn Dock
         Node(
             package='ros_ign_gazebo',
             executable='create',
-            arguments=['-name', 'robot2/standard_dock',
+            arguments=['-name', dock_name,
                        '-x', '-2',
                        '-y', y_dock,
                        '-z', z,
@@ -474,8 +479,8 @@ def generate_launch_description():
             PythonLaunchDescriptionSource([turtlebot4_ros_ign_bridge_launch]),
             launch_arguments=[
                 ('model', LaunchConfiguration('model')),
-                ('robot_name', 'robot2/turtlebot4'),
-                ('dock_name', 'robot2/standard_dock'),
+                ('robot_name', robot_name),
+                ('dock_name', dock_name),
                 ('namespace', namespace)]
         ),
 
@@ -498,8 +503,8 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([create3_ignition_nodes_launch]),
             launch_arguments=[
-                ('robot_name', 'robot2/turtlebot4'),
-                ('dock_name', 'robot2/standard_dock'),
+                ('robot_name', robot_name),
+                ('dock_name', dock_name),
             ]
         ),
 
@@ -511,7 +516,7 @@ def generate_launch_description():
             output='screen',
             arguments=[
                 '0', '0', '0', '0', '0', '0.0',
-                'rplidar_link', ['robot2/turtlebot4', '/rplidar_link/rplidar']],
+                'rplidar_link', [robot_name, '/rplidar_link/rplidar']],
             remappings=[
                 ('/tf', 'tf'),
                 ('/tf_static', 'tf_static'),
@@ -529,7 +534,7 @@ def generate_launch_description():
                 '0', '0', '0',
                 '1.5707', '-1.5707', '0',
                 'oakd_rgb_camera_optical_frame',
-                ['robot2/turtlebot4', '/oakd_rgb_camera_frame/rgbd_camera']
+                [robot_name, '/oakd_rgb_camera_frame/rgbd_camera']
             ],
             remappings=[
                 ('/tf', 'tf'),
@@ -569,8 +574,11 @@ def generate_launch_description():
     ])
 
     # Spawn Robot3
+    namespace = 'robot3'
+    robot_name = GetNamespacedName(namespace, 'turtlebot4')
+    dock_name = GetNamespacedName(namespace, 'standard_dock')
     spawn_robot_group_action3 = GroupAction([
-        PushRosNamespace('robot3/turtlebot4'),
+        PushRosNamespace(namespace),
 
         # Robot description
         IncludeLaunchDescription(
@@ -590,8 +598,8 @@ def generate_launch_description():
         Node(
             package='ros_ign_gazebo',
             executable='create',
-            arguments=['-name', 'robot3/turtlebot4',
-                       '-x', x,
+            arguments=['-name', robot_name,
+                       '-x', '2',
                        '-y', y,
                        '-z', z_robot,
                        '-Y', yaw,
@@ -599,14 +607,13 @@ def generate_launch_description():
                     ],
             output='screen'
         ),
-        
 
         # Spawn Dock
         Node(
             package='ros_ign_gazebo',
             executable='create',
-            arguments=['-name', 'robot3/standard_dock',
-                       '-x', x_dock,
+            arguments=['-name', dock_name,
+                       '-x', '2',
                        '-y', y_dock,
                        '-z', z,
                        '-Y', yaw_dock,
@@ -619,8 +626,8 @@ def generate_launch_description():
             PythonLaunchDescriptionSource([turtlebot4_ros_ign_bridge_launch]),
             launch_arguments=[
                 ('model', LaunchConfiguration('model')),
-                ('robot_name', 'robot3/turtlebot4'),
-                ('dock_name', 'robot3/standard_dock'),
+                ('robot_name', robot_name),
+                ('dock_name', dock_name),
                 ('namespace', namespace)]
         ),
 
@@ -643,8 +650,8 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([create3_ignition_nodes_launch]),
             launch_arguments=[
-                ('robot_name', 'robot3/turtlebot4'),
-                ('dock_name', 'robot3/standard_dock'),
+                ('robot_name', robot_name),
+                ('dock_name', dock_name),
             ]
         ),
 
@@ -656,7 +663,7 @@ def generate_launch_description():
             output='screen',
             arguments=[
                 '0', '0', '0', '0', '0', '0.0',
-                'rplidar_link', ['robot3/turtlebot4', '/rplidar_link/rplidar']],
+                'rplidar_link', [robot_name, '/rplidar_link/rplidar']],
             remappings=[
                 ('/tf', 'tf'),
                 ('/tf_static', 'tf_static'),
@@ -674,7 +681,7 @@ def generate_launch_description():
                 '0', '0', '0',
                 '1.5707', '-1.5707', '0',
                 'oakd_rgb_camera_optical_frame',
-                ['robot3/turtlebot4', '/oakd_rgb_camera_frame/rgbd_camera']
+                [robot_name, '/oakd_rgb_camera_frame/rgbd_camera']
             ],
             remappings=[
                 ('/tf', 'tf'),
@@ -713,9 +720,13 @@ def generate_launch_description():
         ),
     ])
 
+
     # Spawn Robot4
+    namespace = 'robot4'
+    robot_name = GetNamespacedName(namespace, 'turtlebot4')
+    dock_name = GetNamespacedName(namespace, 'standard_dock')
     spawn_robot_group_action4 = GroupAction([
-        PushRosNamespace('robot4/turtlebot4'),
+        PushRosNamespace(namespace),
 
         # Robot description
         IncludeLaunchDescription(
@@ -735,8 +746,8 @@ def generate_launch_description():
         Node(
             package='ros_ign_gazebo',
             executable='create',
-            arguments=['-name', 'robot4/turtlebot4',
-                       '-x', x,
+            arguments=['-name', robot_name,
+                       '-x', '4',
                        '-y', y,
                        '-z', z_robot,
                        '-Y', yaw,
@@ -744,14 +755,13 @@ def generate_launch_description():
                     ],
             output='screen'
         ),
-        
 
         # Spawn Dock
         Node(
             package='ros_ign_gazebo',
             executable='create',
-            arguments=['-name', 'robot4/standard_dock',
-                       '-x', x_dock,
+            arguments=['-name', dock_name,
+                       '-x', '4',
                        '-y', y_dock,
                        '-z', z,
                        '-Y', yaw_dock,
@@ -764,8 +774,8 @@ def generate_launch_description():
             PythonLaunchDescriptionSource([turtlebot4_ros_ign_bridge_launch]),
             launch_arguments=[
                 ('model', LaunchConfiguration('model')),
-                ('robot_name', 'robot4/turtlebot4'),
-                ('dock_name', 'robot4/standard_dock'),
+                ('robot_name', robot_name),
+                ('dock_name', dock_name),
                 ('namespace', namespace)]
         ),
 
@@ -788,8 +798,8 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([create3_ignition_nodes_launch]),
             launch_arguments=[
-                ('robot_name', 'robot4/turtlebot4'),
-                ('dock_name', 'robot4/standard_dock'),
+                ('robot_name', robot_name),
+                ('dock_name', dock_name),
             ]
         ),
 
@@ -801,7 +811,7 @@ def generate_launch_description():
             output='screen',
             arguments=[
                 '0', '0', '0', '0', '0', '0.0',
-                'rplidar_link', ['robot4/turtlebot4', '/rplidar_link/rplidar']],
+                'rplidar_link', [robot_name, '/rplidar_link/rplidar']],
             remappings=[
                 ('/tf', 'tf'),
                 ('/tf_static', 'tf_static'),
@@ -819,7 +829,7 @@ def generate_launch_description():
                 '0', '0', '0',
                 '1.5707', '-1.5707', '0',
                 'oakd_rgb_camera_optical_frame',
-                ['robot4/turtlebot4', '/oakd_rgb_camera_frame/rgbd_camera']
+                [robot_name, '/oakd_rgb_camera_frame/rgbd_camera']
             ],
             remappings=[
                 ('/tf', 'tf'),
@@ -858,11 +868,12 @@ def generate_launch_description():
         ),
     ])
 
+
     # RViz
     rviz = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([rviz_launch]),
         launch_arguments=[
-            ('namespace', 'robot1/turtlebot4'),
+            ('namespace', 'robot1'),
             ('use_sim_time', use_sim_time)],
         condition=IfCondition(LaunchConfiguration('rviz')),
     )
