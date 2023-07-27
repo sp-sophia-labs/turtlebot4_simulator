@@ -138,7 +138,7 @@ def generate_launch_description():
     namespace = 'robot4'
     robot_name = GetNamespacedName(namespace, 'turtlebot4')
     dock_name = GetNamespacedName(namespace, 'standard_dock')
-    spawn_robot_group_action1 = GroupAction([
+    spawn_robot_group_action4 = GroupAction([
         PushRosNamespace(namespace),
 
         # Robot description
